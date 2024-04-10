@@ -139,6 +139,12 @@ func (p *PuppetDB) get(endpoint string, query string, object interface{}) (err e
 		err = fmt.Errorf("failed to read response: %s", err)
 		return
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("Non-OK HTTP status: %d\nResponse: %s", resp.StatusCode, string(body))
+		return
+	}
+
 	err = json.Unmarshal(body, object)
 	if err != nil {
 		err = fmt.Errorf("failed to unmarshal: %s", err)
