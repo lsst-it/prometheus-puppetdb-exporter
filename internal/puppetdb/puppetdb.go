@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // PuppetDB stores informations used to connect to a PuppetDB
@@ -122,11 +124,15 @@ func (p *PuppetDB) get(endpoint string, query string, object interface{}) (err e
 	} else {
 		myurl = fmt.Sprintf("%s/v4/%s?query=%s", base, endpoint, url.QueryEscape(query))
 	}
+
 	req, err := http.NewRequest("GET", myurl, strings.NewReader(""))
 	if err != nil {
 		err = fmt.Errorf("failed to build request: %s", err)
 		return
 	}
+
+	log.Debugln("req:", req)
+
 	resp, err := p.client.Do(req)
 	if err != nil {
 		err = fmt.Errorf("failed to call API: %s", err)
