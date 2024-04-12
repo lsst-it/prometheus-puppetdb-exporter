@@ -26,6 +26,9 @@ type Options struct {
 	CACertPath string
 	KeyPath    string
 	SSLVerify  bool
+	AuthType   string
+	AuthUser   string
+	AuthPass   string
 }
 
 // Node is a structure returned by a PuppetDB
@@ -61,28 +64,35 @@ func NewClient(options *Options) (p *PuppetDB, err error) {
 	}
 
 	if puppetdbURL.Scheme == "https" {
-		// Load client cert
-		cert, err := tls.LoadX509KeyPair(options.CertPath, options.KeyPath)
-		if err != nil {
-			err = fmt.Errorf("failed to load keypair: %s", err)
-			return nil, err
-		}
-
-		// Load CA cert
-		caCert, err := ioutil.ReadFile(options.CACertPath)
-		if err != nil {
-			err = fmt.Errorf("failed to load ca certificate: %s", err)
-			return nil, err
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
-
 		// Setup HTTPS client
 		tlsConfig := &tls.Config{
-			Certificates:       []tls.Certificate{cert},
-			RootCAs:            caCertPool,
 			InsecureSkipVerify: !options.SSLVerify,
 		}
+
+		if options.AuthType == "x509" {
+			// Load client cert
+			cert, err := tls.LoadX509KeyPair(options.CertPath, options.KeyPath)
+			if err != nil {
+				err = fmt.Errorf("failed to load keypair: %s", err)
+				return nil, err
+			}
+
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+
+		if options.CACertPath != "" {
+			// Load CA cert
+			caCert, err := ioutil.ReadFile(options.CACertPath)
+			if err != nil {
+				err = fmt.Errorf("failed to load ca certificate: %s", err)
+				return nil, err
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+
+			tlsConfig.RootCAs = caCertPool
+		}
+
 		tlsConfig.BuildNameToCertificate()
 		transport = &http.Transport{TLSClientConfig: tlsConfig}
 	} else {
@@ -132,6 +142,10 @@ func (p *PuppetDB) get(endpoint string, query string, object interface{}) (err e
 	}
 
 	log.Debugln("req:", req)
+
+	if p.options.AuthType == "basic" {
+		req.SetBasicAuth(p.options.AuthUser, p.options.AuthPass)
+	}
 
 	resp, err := p.client.Do(req)
 	if err != nil {
