@@ -29,6 +29,9 @@ type Config struct {
 	Verbose        bool   `long:"verbose" description:"Enable debug mode" env:"PUPPETDB_VERBOSE"`
 	UnreportedNode string `long:"unreported-node" description:"Tag nodes as unreported if the latest report is older than the defined duration." env:"PUPPETDB_UNREPORTED_NODE" default:"2h"`
 	Categories     string `long:"categories" description:"Report metrics categories to scrape." env:"REPORT_METRICS_CATEGORIES" default:"resources,time,changes,events"`
+	BasicAuth      bool   `long:"basic-auth" description:"Enable http basic auth" env:"PUPPETDB_BASIC_AUTH"`
+	AuthUser       string `long:"user" description:"Http basic auth user" env:"PUPPETDB_USER"`
+	AuthPass       string `long:"pass" description:"Http basic auth password" env:"PUPPETDB_PASS"`
 }
 
 var (
@@ -76,7 +79,11 @@ func main() {
 	for _, category := range cats {
 		categories[category] = struct{}{}
 	}
-	exp, err := exporter.NewPuppetDBExporter(c.PuppetDBUrl, c.CertFile, c.CACertFile, c.KeyFile, c.SSLSkipVerify, categories)
+	authType := "x509"
+	if c.BasicAuth {
+		authType = "basic"
+	}
+	exp, err := exporter.NewPuppetDBExporter(c.PuppetDBUrl, c.CertFile, c.CACertFile, c.KeyFile, c.SSLSkipVerify, authType, c.AuthUser, c.AuthPass, categories)
 	if err != nil {
 		log.Fatalf("failed to initialize exporter: %s", err)
 	}

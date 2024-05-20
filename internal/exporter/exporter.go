@@ -25,7 +25,7 @@ var (
 )
 
 // NewPuppetDBExporter returns a new exporter of PuppetDB metrics.
-func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bool, categories map[string]struct{}) (e *Exporter, err error) {
+func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bool, authType, authUser, authPass string, categories map[string]struct{}) (e *Exporter, err error) {
 	e = &Exporter{
 		namespace: "puppetdb",
 	}
@@ -36,6 +36,9 @@ func NewPuppetDBExporter(url, certPath, caPath, keyPath string, sslSkipVerify bo
 		CACertPath: caPath,
 		KeyPath:    keyPath,
 		SSLVerify:  sslSkipVerify,
+		AuthType:   authType,
+		AuthUser:   authUser,
+		AuthPass:   authPass,
 	}
 
 	e.client, err = puppetdb.NewClient(opts)
